@@ -47,6 +47,9 @@ jobs:
           if [ -z "$BASE_SHA" ] || [ "$BASE_SHA" = "0000000000000000000000000000000000000000" ]; then
             FROM="$(git rev-parse "${HEAD_SHA}^" 2>/dev/null || echo "$HEAD_SHA")"
             echo "Không xác định được base commit, kiểm tra commit HEAD."
+          elif ! git cat-file -e "${BASE_SHA}^{commit}" 2>/dev/null; then
+            FROM="$(git rev-parse "${HEAD_SHA}^" 2>/dev/null || echo "$HEAD_SHA")"
+            echo "Base commit ${BASE_SHA} không tồn tại, chuyển sang kiểm tra commit HEAD."
           else
             FROM="$BASE_SHA"
           fi
