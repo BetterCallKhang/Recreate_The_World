@@ -57,6 +57,7 @@ Các mục dưới là lựa chọn dự kiến, sẽ chốt khi bắt đầu l�
 
 | Pipeline | Mục đích |
 |---|---|
+| `commitlint.yml` | Kiểm tra format commit message (Conventional Commits) |
 | `unity-check.yml` | Format C# + chạy EditMode test |
 | `unity-build-playmode.yml` | PlayMode test + build thử game |
 | `web-ci.yml` | Lint, unit test, build thử web |
@@ -70,4 +71,18 @@ Các mục dưới là lựa chọn dự kiến, sẽ chốt khi bắt đầu l�
 | Unity Editor | `6000.3.29f1` |
 | Git | `>= 2.30` |
 | Git LFS | Bắt buộc (`git lfs install`) |
+| Node.js | `>= 18` (dùng cho husky + commitlint) |
+| npm | Đi kèm Node.js |
 | OS | Linux (hiện tại), Windows/macOS |
+
+## 6. Công cụ repo
+
+| Công cụ | Phiên bản | Vai trò |
+|---|---|---|
+| Node.js | `>= 18` | Runtime cho git hook và CI |
+| npm | đi kèm Node.js | Cài devDependencies ở root |
+| husky | `9.1.7` | Cài git hook `commit-msg` |
+| @commitlint/cli | `21.2.4` | Kiểm tra commit message |
+| @commitlint/config-conventional | `21.2.4` | Bộ luật Conventional Commits |
+
+Cấu hình: `.commitlintrc.cjs` · Hook: `.husky/commit-msg` · CI: `.github/workflows/commitlint.yml`

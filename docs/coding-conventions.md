@@ -111,6 +111,9 @@ Theo [Conventional Commits](https://www.conventionalcommits.org/):
 | `docs` | Tài liệu |
 | `chore` | Cấu hình, CI, package |
 | `perf` | Tối ưu hiệu năng |
+| `build` | Thay đổi build system |
+| `ci` | Thay đổi cấu hình CI |
+| `revert` | Revert commit trước |
 
 Ví dụ:
 
@@ -120,7 +123,23 @@ fix(enemy): sua loi slime ket trong tuong
 chore(unity): cap nhat package input system
 ```
 
-### 3.3 Pull Request
+### 3.3 Kiểm tra commit tự động
+
+Repo dùng **husky + commitlint** để chặn commit sai format ngay trên máy:
+
+| Thành phần | Vị trí |
+|---|---|
+| Hook | `.husky/commit-msg` |
+| Cấu hình | `.commitlintrc.cjs` |
+| CI | `.github/workflows/commitlint.yml` |
+
+- Cài lần đầu: `npm install` — script `prepare` tự cài hook husky.
+- Hook `commit-msg` chạy `commitlint --edit` và chặn commit nếu message sai.
+- Kiểm tra thủ công: `echo "feat(player): them double jump" | npx commitlint`
+- Bỏ qua hook chỉ khi thật cần: `git commit --no-verify`
+- CI `commitlint.yml` kiểm tra lại toàn bộ commit trên PR và push vào `main`.
+
+### 3.4 Pull Request
 
 Checklist trước khi mở PR:
 
