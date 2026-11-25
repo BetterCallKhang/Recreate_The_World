@@ -213,3 +213,4 @@ Quy ước review: PR nhỏ (< ~400 dòng), mô tả rõ **làm gì** và **các
 - Tài liệu chung đặt trong `docs/`.
 - README của Unity project: `src/Recreate_The_World/README.md`.
 - Thay đổi lớn về kiến trúc phải cập nhật `docs/architecture.md` trong cùng PR.
+- **AI agent** phải đọc `AGENTS.md` và `.ai/config.json` trước khi làm việc. `AGENTS.md` là nguồn luật duy nhất; `CLAUDE.md`, `.github/copilot-instructions.md`, `.cursor/rules/project.mdc` chỉ là con trỏ tới nó.

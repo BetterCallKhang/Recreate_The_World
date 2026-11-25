@@ -1,0 +1,6 @@
+{
+  "autoCommit": false,
+  "writeTests": true,
+  "language": "vi",
+  "commitConvention": "conventional-commits"
+}
