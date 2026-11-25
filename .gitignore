@@ -1,0 +1,70 @@
+# ==========================================
+# Repo-level .gitignore
+# Chỉ chứa những gì thuộc phạm vi repo (OS, IDE, secrets, web, CI/CD).
+# Cấu hình riêng của Unity nằm trong src/Recreate_The_World/.gitignore
+# ==========================================
+
+# ==========================================
+# OS & System Files
+# ==========================================
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+Desktop.ini
+*~
+
+# ==========================================
+# IDEs & Editors (Rider, VS, VS Code, Neovim)
+# ==========================================
+.idea/
+*.iml
+.vscode/
+.vs/
+*.suo
+*.user
+*.userosscache
+*.sln.docstates
+*.swp
+*.swo
+
+# ==========================================
+# Environment Variables & Secrets
+# ==========================================
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+
+# ==========================================
+# Web Project (src/download-web/)
+# ==========================================
+node_modules/
+dist/
+build/
+.next/
+out/
+.nuxt/
+.cache/
+.turbo/
+coverage/
+.nyc_output/
+*.tsbuildinfo
+
+# Logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# ==========================================
+# Docker & CI/CD Local Artifacts
+# ==========================================
+.docker/
+*.tar
+*.tar.gz
+*.zip
