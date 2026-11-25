@@ -1,0 +1,71 @@
+# ==========================================
+# Unity Project .gitignore
+# Đặt tại root của project Unity (src/Recreate_The_World/)
+# Mọi đường dẫn bên dưới đều tương đối với thư mục này.
+# Tham khảo: https://github.com/github/gitignore/blob/main/Unity.gitignore
+# ==========================================
+
+# Thư mục sinh tự động bởi Unity — KHÔNG commit
+/[Ll]ibrary/
+/[Tt]emp/
+/[Oo]bj/
+/[Bb]uild/
+/[Bb]uilds/
+/[Ll]ogs/
+/[Uu]ser[Ss]ettings/
+/[Mm]emoryCaptures/
+/[Rr]ecordings/
+
+# .meta của asset bị ignore thì cũng bỏ qua .meta tương ứng
+!/[Aa]ssets/**/*.meta
+
+# Asset Store Tools (bật nếu có dùng)
+# /[Aa]ssets/AssetStoreTools*
+
+# Plugin JetBrains Rider sinh tự động
+/[Aa]ssets/Plugins/Editor/JetBrains*
+
+# Cache của IDE / build tool
+.vs/
+.gradle/
+
+# File solution & project sinh tự động
+ExportedObj/
+.consulo/
+*.csproj
+*.unityproj
+*.sln
+*.slnx
+*.suo
+*.tmp
+*.user
+*.userprefs
+*.pidb
+*.pdb
+*.mdb
+*.opendb
+*.VC.db
+
+# .meta của file debug sinh tự động
+*.pidb.meta
+*.pdb.meta
+*.mdb.meta
+
+# File báo crash của Unity
+sysinfo.txt
+
+# Build output
+*.apk
+*.aab
+*.unitypackage
+*.app
+
+# Crashlytics
+crashlytics-build.properties
+
+# Addressables đã pack
+/[Aa]ssets/[Aa]ddressable[Aa]ssets[Dd]ata/*/*.bin*
+
+# StreamingAssets tạm do Addressables sinh ra
+/[Aa]ssets/[Ss]treamingAssets/aa.meta
+/[Aa]ssets/[Ss]treamingAssets/aa/*
