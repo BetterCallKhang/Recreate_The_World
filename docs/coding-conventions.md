@@ -48,6 +48,7 @@ CI chặn PR nếu `.cs` chưa format hoặc vi phạm `.editorconfig`. Lỗi đ
 - Method dài quá ~50 dòng nên tách.
 - Comment giải thích **vì sao**, không giải thích **cái gì**; code tự nói cái gì.
 - Không commit code debug (`Debug.Log` dày đặc, test tạm, `TODO` không tên người).
+- Review code theo checklist trong [`docs/review.md`](review.md) (SOLID, YAGNI, KISS, không magic value/variable).
 
 ### 1.4 Assembly
 
@@ -258,7 +259,7 @@ Cấu hình GitHub (làm 1 lần bởi owner):
   - *Block force pushes*
 - Không cấp quyền push trực tiếp `main`/`dev` cho thành viên.
 
-Quy ước review: PR nhỏ (< ~400 dòng), mô tả rõ **làm gì** và **cách test**.
+Quy ước review: PR nhỏ (< ~400 dòng), mô tả rõ **làm gì** và **cách test**. Checklist chi tiết cho reviewer: [`docs/review.md`](review.md).
 
 ### 3.5 Rebase và đồng bộ nhánh
 

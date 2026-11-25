@@ -28,6 +28,7 @@ Recreate_The_World/
 │   ├── tech-stack.md            # Phiên bản Unity, package, công cụ
 │   ├── architecture.md          # Kiến trúc asmdef, luồng dữ liệu, web
 │   ├── coding-conventions.md    # Quy ước code, asset, nhánh, commit, PR
+│   ├── review.md                # Hướng dẫn review code (SOLID, YAGNI, ...)
 │   └── performance-benchmarks/  # Báo cáo hiệu năng theo mốc
 ├── .github/
 │   ├── workflows/               # CI: ci.yml (commit, branch, format, Unity)
@@ -193,6 +194,7 @@ Quy tắc cứng:
 | [`docs/tech-stack.md`](docs/tech-stack.md) | Phiên bản Unity/package, công cụ, CI |
 | [`docs/architecture.md`](docs/architecture.md) | Kiến trúc asmdef, luồng dữ liệu, kế hoạch web |
 | [`docs/coding-conventions.md`](docs/coding-conventions.md) | Code C#, asset, nhánh, commit, PR |
+| [`docs/review.md`](docs/review.md) | Checklist review code: SOLID, YAGNI, KISS, không magic value/variable |
 | [`docs/performance-benchmarks/baseline-report.md`](docs/performance-benchmarks/baseline-report.md) | Baseline FPS, frame time, GC Alloc, RAM |
 | [`src/Recreate_The_World/README.md`](src/Recreate_The_World/README.md) | Mở project, cấu trúc `Assets/`, asmdef, build |
 
