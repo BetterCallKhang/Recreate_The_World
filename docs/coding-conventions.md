@@ -83,14 +83,34 @@ Quy tắc thêm:
 
 | Nhánh | Mục đích |
 |---|---|
-| `main` | Nhánh ổn định, luôn mở được project |
+| `main` | Nhánh ổn định, luôn mở được project. **Cấm push trực tiếp** |
+| `release/<x.y.z>` | Nhánh phát hành, ví dụ `release/1.0.0` |
 | `feat/<ten-ngan>` | Tính năng mới |
 | `fix/<ten-ngan>` | Sửa lỗi |
 | `refactor/<ten-ngan>` | Tái cấu trúc |
+| `perf/<ten-ngan>` | Tối ưu hiệu năng |
+| `test/<ten-ngan>` | Test |
 | `docs/<ten-ngan>` | Tài liệu |
-| `chore/<ten-ngan>` | Cấu hình, build, CI |
+| `chore/<ten-ngan>` | Cấu hình, tooling |
+| `build/<ten-ngan>` | Build system |
+| `ci/<ten-ngan>` | CI/CD |
+| `revert/<ten-ngan>` | Revert |
 
-Tên nhánh: chữ thường, gạch ngang. Ví dụ `feat/player-double-jump`.
+Quy tắc bắt buộc:
+
+- `<ten-ngan>` dùng **chữ thường**, số, `-`, `.`, `_`; bắt đầu bằng chữ/số.
+- Không dùng `feature/`, `hotfix/`, khoảng trắng, chữ hoa, hay `feat_...`.
+- Regex kiểm tra:
+
+```text
+^(main|release/\d+\.\d+\.\d+|(feat|fix|refactor|perf|test|docs|chore|build|ci|revert)/[a-z0-9][a-z0-9._-]*|(dependabot|renovate)/.*)$
+```
+
+Ràng buộc tự động:
+
+- **Local:** hook `.husky/pre-push` gọi `scripts/check-branch-name.sh` — chặn push nếu tên nhánh sai.
+- **CI:** `.github/workflows/branch-name.yml` kiểm tra tên nhánh nguồn của mọi PR.
+- **Thủ công:** `npm run check:branch` hoặc `sh scripts/check-branch-name.sh <ten-nhanh>`.
 
 ### 3.2 Commit
 
@@ -137,18 +157,44 @@ Repo dùng **husky + commitlint** để chặn commit sai format ngay trên máy
 - Hook `commit-msg` chạy `commitlint --edit` và chặn commit nếu message sai.
 - Kiểm tra thủ công: `echo "feat(player): them double jump" | npx commitlint`
 - Bỏ qua hook chỉ khi thật cần: `git commit --no-verify`
-- CI `commitlint.yml` kiểm tra lại toàn bộ commit trên PR và push vào `main`.
+- CI `commitlint.yml` kiểm tra lại toàn bộ commit trên PR và push vào `main`, đồng thời kiểm tra **PR title** vì squash merge lấy title làm commit message.
 
 ### 3.4 Pull Request
 
+**Mọi thay đổi vào `main` phải qua Pull Request.** Không push trực tiếp, không merge local rồi push.
+
+Luồng làm việc:
+
+1. Cập nhật `main`, tạo nhánh: `git switch main && git pull && git switch -c feat/<ten-ngan>`
+2. Commit theo Conventional Commits, push nhánh lên `origin`
+3. Mở PR vào `main`, dùng template `.github/pull_request_template.md`
+4. Chờ CI xanh và được review
+5. Squash merge, xóa nhánh sau khi merge
+
 Checklist trước khi mở PR:
 
+- [ ] Tên nhánh đúng quy ước (mục 3.1), CI `branch-name` xanh
+- [ ] Commit message đúng Conventional Commits, CI `commitlint` xanh
 - [ ] Project mở được, không lỗi compile trong Console
 - [ ] Chạy Test Runner (EditMode, PlayMode nếu có)
 - [ ] Không commit `Library/`, `Temp/`, `Logs/`, `UserSettings/`, `Builds/`
 - [ ] Asset mới có `.meta` và đặt đúng folder/prefix
 - [ ] Không có file debug, code chết
 - [ ] Cập nhật `docs/` nếu thay đổi kiến trúc hoặc tech stack
+
+Required checks trên PR:
+
+| Check | Workflow | Kiểm tra gì |
+|---|---|---|
+| Commit message | `commitlint.yml` | Toàn bộ commit trong PR/push + **PR title** (dùng cho squash merge) |
+| Branch name | `branch-name.yml` | Tên nhánh nguồn của PR |
+| Unity compile/test | `unity-check.yml` (khi có) | Compile + EditMode test |
+
+Bật bảo vệ nhánh trên GitHub (làm 1 lần bởi owner):
+
+- **Settings ▸ Rules ▸ Rulesets** (hoặc **Branches**) → target `main`
+- Bật: *Require a pull request before merging*, *Require status checks to pass*, *Block force pushes*
+- Không cấp quyền push trực tiếp `main` cho thành viên
 
 Quy ước review: PR nhỏ (< ~400 dòng), mô tả rõ **làm gì** và **cách test**.
 

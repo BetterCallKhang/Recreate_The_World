@@ -2,9 +2,10 @@
   "name": "recreate-the-world",
   "version": "0.1.0",
   "private": true,
-  "description": "Repo tooling: commit message linting (husky + commitlint)",
+  "description": "Repo tooling: commit message linting (husky + commitlint) and branch name check",
   "scripts": {
     "commitlint": "commitlint",
+    "check:branch": "sh scripts/check-branch-name.sh",
     "prepare": "husky"
   },
   "devDependencies": {

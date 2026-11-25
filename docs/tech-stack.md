@@ -57,7 +57,8 @@ Các mục dưới là lựa chọn dự kiến, sẽ chốt khi bắt đầu l�
 
 | Pipeline | Mục đích |
 |---|---|
-| `commitlint.yml` | Kiểm tra format commit message (Conventional Commits) |
+| `commitlint.yml` | Kiểm tra commit message + PR title (Conventional Commits) |
+| `branch-name.yml` | Kiểm tra tên nhánh nguồn của PR |
 | `unity-check.yml` | Format C# + chạy EditMode test |
 | `unity-build-playmode.yml` | PlayMode test + build thử game |
 | `web-ci.yml` | Lint, unit test, build thử web |
@@ -85,4 +86,6 @@ Các mục dưới là lựa chọn dự kiến, sẽ chốt khi bắt đầu l�
 | @commitlint/cli | `21.2.4` | Kiểm tra commit message |
 | @commitlint/config-conventional | `21.2.4` | Bộ luật Conventional Commits |
 
-Cấu hình: `.commitlintrc.cjs` · Hook: `.husky/commit-msg` · CI: `.github/workflows/commitlint.yml`
+Cấu hình commit: `.commitlintrc.cjs` · Hook: `.husky/commit-msg` · CI: `.github/workflows/commitlint.yml`
+
+Kiểm tra tên nhánh: `scripts/check-branch-name.sh` · Hook: `.husky/pre-push` · CI: `.github/workflows/branch-name.yml`
