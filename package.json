@@ -6,6 +6,7 @@
   "scripts": {
     "commitlint": "commitlint",
     "check:branch": "sh scripts/check-branch-name.sh",
+    "check:format": "bash scripts/check-format.sh",
     "prepare": "husky"
   },
   "devDependencies": {

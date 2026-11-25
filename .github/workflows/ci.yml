@@ -1,0 +1,371 @@
+name: CI
+
+on:
+  pull_request:
+    types: [opened, edited, reopened, synchronize]
+  push:
+    branches: [dev, main]
+
+permissions:
+  contents: read
+  checks: write
+  pull-requests: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  # ---------------------------------------------------------------------------
+  # 1. Commit message (Conventional Commits + PR title)
+  # ---------------------------------------------------------------------------
+  commitlint:
+    name: Commit message
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Resolve commit range
+        id: range
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha || github.event.before }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+        run: |
+          if [ -z "$BASE_SHA" ] || [ "$BASE_SHA" = "0000000000000000000000000000000000000000" ]; then
+            FROM="$(git rev-parse "${HEAD_SHA}^" 2>/dev/null || echo "$HEAD_SHA")"
+            echo "Không xác định được base commit, kiểm tra commit HEAD."
+          else
+            FROM="$BASE_SHA"
+          fi
+
+          echo "from=$FROM" >> "$GITHUB_OUTPUT"
+          echo "to=$HEAD_SHA" >> "$GITHUB_OUTPUT"
+
+          {
+            echo "### Commit trong phạm vi kiểm tra"
+            echo ""
+            git log --format='- `%h` %s' "$FROM..$HEAD_SHA" 2>/dev/null || echo "- (không có commit)"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Lint commit messages
+        env:
+          FROM: ${{ steps.range.outputs.from }}
+          TO: ${{ steps.range.outputs.to }}
+        run: |
+          set -o pipefail
+
+          if ./node_modules/.bin/commitlint --from "$FROM" --to "$TO" --verbose 2>&1 | tee commitlint.log; then
+            echo "### Commit message hợp lệ" >> "$GITHUB_STEP_SUMMARY"
+            exit 0
+          fi
+
+          echo "::error title=Commit message không hợp lệ::Sửa theo Conventional Commits: <type>(scope): mô tả. Xem chi tiết trong log của step này."
+          {
+            echo "### Commit message không hợp lệ"
+            echo ""
+            echo "Quy ước: \`<type>(scope): mô tả\` — type: feat, fix, refactor, perf, test, docs, chore, build, ci, revert."
+            echo ""
+            echo "<details><summary>Chi tiết lỗi commitlint</summary>"
+            echo ""
+            echo '```text'
+            cat commitlint.log
+            echo '```'
+            echo ""
+            echo "</details>"
+          } >> "$GITHUB_STEP_SUMMARY"
+          exit 1
+
+      - name: Lint PR title
+        if: github.event_name == 'pull_request'
+        env:
+          PR_TITLE: ${{ github.event.pull_request.title }}
+        run: |
+          if printf '%s\n' "$PR_TITLE" | ./node_modules/.bin/commitlint --verbose; then
+            echo "### PR title hợp lệ" >> "$GITHUB_STEP_SUMMARY"
+            exit 0
+          fi
+
+          echo "::error title=PR title không hợp lệ::PR title cần theo Conventional Commits để thống nhất danh sách PR và release note."
+          {
+            echo "### PR title không hợp lệ"
+            echo ""
+            echo "\`$PR_TITLE\`"
+            echo ""
+            echo "Giữ format \`<type>(scope): mô tả\`."
+          } >> "$GITHUB_STEP_SUMMARY"
+          exit 1
+
+  # ---------------------------------------------------------------------------
+  # 2. Branch name + luồng PR (feature -> dev -> main)
+  # ---------------------------------------------------------------------------
+  branch_name:
+    name: Branch name and PR flow
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Check branch name
+        env:
+          BRANCH: ${{ github.head_ref }}
+        run: |
+          set -o pipefail
+
+          if [ -z "$BRANCH" ]; then
+            echo "::error title=Thiếu tên nhánh::Không đọc được github.head_ref."
+            exit 1
+          fi
+
+          if sh scripts/check-branch-name.sh "$BRANCH" 2>&1 | tee branch-name.log; then
+            {
+              echo "### Tên nhánh hợp lệ"
+              echo ""
+              echo "\`$BRANCH\`"
+            } >> "$GITHUB_STEP_SUMMARY"
+            exit 0
+          fi
+
+          echo "::error title=Tên nhánh không hợp lệ::'$BRANCH' không khớp quy ước. Xem docs/coding-conventions.md mục 3.1."
+          {
+            echo "### Tên nhánh không hợp lệ"
+            echo ""
+            echo "\`$BRANCH\`"
+            echo ""
+            echo "Quy ước: \`main\`, \`dev\`, \`release/x.y.z\`, \`<type>/<ten-ngan>\` (chữ thường, gạch ngang)."
+            echo ""
+            echo '```text'
+            cat branch-name.log
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+          exit 1
+
+      - name: Validate PR target flow
+        env:
+          HEAD_REF: ${{ github.head_ref }}
+          BASE_REF: ${{ github.base_ref }}
+        run: |
+          fail() {
+            echo "::error title=Luồng PR không hợp lệ::$1"
+            {
+              echo "### Luồng PR không hợp lệ"
+              echo ""
+              echo "\`$HEAD_REF\` → \`$BASE_REF\`"
+              echo ""
+              echo "$1"
+              echo ""
+              echo "Luồng đúng: \`<type>/*\` → \`dev\`; \`release/x.y.z\` → \`dev\`; \`dev\` → \`main\`."
+            } >> "$GITHUB_STEP_SUMMARY"
+            exit 1
+          }
+
+          case "$BASE_REF" in
+            main)
+              if [ "$HEAD_REF" != "dev" ]; then
+                fail "Chỉ nhánh \`dev\` được PR vào \`main\`."
+              fi
+              ;;
+            dev)
+              if [ "$HEAD_REF" = "main" ]; then
+                fail "Không PR ngược từ \`main\` vào \`dev\`; tạo nhánh mới từ \`dev\`."
+              fi
+              ;;
+            release/*)
+              if [ "$HEAD_REF" = "main" ]; then
+                fail "Không PR từ \`main\` vào nhánh release."
+              fi
+              ;;
+            *)
+              fail "PR phải nhắm vào \`dev\` (tính năng/sửa lỗi) hoặc \`main\` (chỉ từ \`dev\`)."
+              ;;
+          esac
+
+          {
+            echo "### Luồng PR hợp lệ"
+            echo ""
+            echo "\`$HEAD_REF\` → \`$BASE_REF\`"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+  # ---------------------------------------------------------------------------
+  # 3. Phát hiện thay đổi trong project Unity
+  # ---------------------------------------------------------------------------
+  changes:
+    name: Detect Unity changes
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      unity: ${{ steps.filter.outputs.unity }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Detect changes under src/Recreate_The_World
+        id: filter
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha || github.event.before }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+        run: |
+          if [ -z "$BASE_SHA" ] || [ "$BASE_SHA" = "0000000000000000000000000000000000000000" ]; then
+            BASE_SHA="$(git rev-parse "${HEAD_SHA}^" 2>/dev/null || echo "$HEAD_SHA")"
+          fi
+
+          MERGE_BASE="$(git merge-base "$BASE_SHA" "$HEAD_SHA" 2>/dev/null || echo "$BASE_SHA")"
+          CHANGED="$(git diff --name-only "$MERGE_BASE" "$HEAD_SHA" -- \
+            src/Recreate_The_World/Assets \
+            src/Recreate_The_World/ProjectSettings \
+            src/Recreate_The_World/Packages || true)"
+
+          {
+            echo "### Phạm vi thay đổi Unity"
+            echo ""
+            if [ -n "$CHANGED" ]; then
+              echo '```text'
+              echo "$CHANGED"
+              echo '```'
+              echo "unity=true" >> "$GITHUB_OUTPUT"
+            else
+              echo "Không có file nào thay đổi trong project Unity."
+              echo "unity=false" >> "$GITHUB_OUTPUT"
+            fi
+          } >> "$GITHUB_STEP_SUMMARY"
+
+  # ---------------------------------------------------------------------------
+  # 4. Unity: format + compile + EditMode test (chỉ khi có thay đổi Unity)
+  # ---------------------------------------------------------------------------
+  unity_check:
+    name: Unity compile, test and format
+    needs: [commitlint, branch_name, changes]
+    if: |
+      always() &&
+      needs.changes.outputs.unity == 'true' &&
+      needs.commitlint.result == 'success' &&
+      (needs.branch_name.result == 'success' || needs.branch_name.result == 'skipped')
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          lfs: true
+          fetch-depth: 1
+
+      - name: Check format
+        run: bash scripts/check-format.sh
+
+      - name: Check Unity license
+        id: license
+        env:
+          UNITY_LICENSE: ${{ secrets.UNITY_LICENSE }}
+          UNITY_EMAIL: ${{ secrets.UNITY_EMAIL }}
+          UNITY_PASSWORD: ${{ secrets.UNITY_PASSWORD }}
+          UNITY_SERIAL: ${{ secrets.UNITY_SERIAL }}
+        run: |
+          if [ -n "$UNITY_LICENSE" ] || [ -n "$UNITY_SERIAL" ] \
+            || { [ -n "$UNITY_EMAIL" ] && [ -n "$UNITY_PASSWORD" ]; }; then
+            echo "ready=true" >> "$GITHUB_OUTPUT"
+            echo "Đã có Unity license."
+          else
+            echo "ready=false" >> "$GITHUB_OUTPUT"
+            echo "::warning title=Chưa cấu hình Unity license::Thêm secrets UNITY_LICENSE (hoặc UNITY_EMAIL + UNITY_PASSWORD) để bật compile và EditMode test."
+            {
+              echo "### Chưa cấu hình Unity license"
+              echo ""
+              echo "Bước compile/test đã bị bỏ qua. Format vẫn được kiểm tra."
+              echo ""
+              echo "Thêm một trong các bộ secrets sau trong **Settings ▸ Secrets and variables ▸ Actions**:"
+              echo ""
+              echo "- \`UNITY_LICENSE\` (nội dung file license), hoặc"
+              echo "- \`UNITY_EMAIL\` + \`UNITY_PASSWORD\`, hoặc"
+              echo "- \`UNITY_SERIAL\` + \`UNITY_EMAIL\` + \`UNITY_PASSWORD\`"
+            } >> "$GITHUB_STEP_SUMMARY"
+          fi
+
+      - name: Run EditMode test (compile)
+        if: steps.license.outputs.ready == 'true'
+        uses: game-ci/unity-test-runner@v4
+        env:
+          UNITY_LICENSE: ${{ secrets.UNITY_LICENSE }}
+          UNITY_EMAIL: ${{ secrets.UNITY_EMAIL }}
+          UNITY_PASSWORD: ${{ secrets.UNITY_PASSWORD }}
+          UNITY_SERIAL: ${{ secrets.UNITY_SERIAL }}
+        with:
+          unityVersion: auto
+          testMode: editmode
+          artifactsPath: artifacts/editmode
+          githubToken: ${{ secrets.GITHUB_TOKEN }}
+          checkName: Unity EditMode
+
+      - name: Upload test artifacts
+        if: always() && steps.license.outputs.ready == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: unity-editmode-results
+          path: artifacts/
+          if-no-files-found: ignore
+
+  # ---------------------------------------------------------------------------
+  # 5. Gate duy nhất để bật required check trên branch protection
+  # ---------------------------------------------------------------------------
+  ci_result:
+    name: CI
+    if: always()
+    needs: [commitlint, branch_name, changes, unity_check]
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Check job results
+        env:
+          COMMITLINT: ${{ needs.commitlint.result }}
+          BRANCH_NAME: ${{ needs.branch_name.result }}
+          CHANGES: ${{ needs.changes.result }}
+          UNITY: ${{ needs.unity_check.result }}
+        run: |
+          failed=0
+
+          check() {
+            name="$1"
+            result="$2"
+            allowed="$3"
+            echo "$name = $result"
+            case " $allowed " in
+              *" $result "*) ;;
+              *)
+                echo "::error title=CI thất bại::$name trả về '$result'."
+                failed=1
+                ;;
+            esac
+          }
+
+          check "commitlint" "$COMMITLINT" "success"
+          check "branch_name" "$BRANCH_NAME" "success skipped"
+          check "changes" "$CHANGES" "success"
+          check "unity_check" "$UNITY" "success skipped"
+
+          {
+            echo "### Kết quả CI"
+            echo ""
+            echo "| Job | Kết quả |"
+            echo "|---|---|"
+            echo "| Commit message | \`$COMMITLINT\` |"
+            echo "| Branch name and PR flow | \`$BRANCH_NAME\` |"
+            echo "| Detect Unity changes | \`$CHANGES\` |"
+            echo "| Unity compile, test and format | \`$UNITY\` |"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+          exit "$failed"

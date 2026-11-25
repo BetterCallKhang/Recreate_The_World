@@ -17,7 +17,7 @@ Nguồn luật duy nhất là `AGENTS.md` ở root. Trước khi sửa code:
 - Dependency một chiều: `Game.Core` → `Game.Scripts` → test assemblies.
 - Không xóa/tạo lại `.meta`; không commit `Library/`, `Temp/`, `Logs/`, `UserSettings/`, `Builds/`, `*.csproj`, `*.sln`.
 - Asset đúng `Assets/_Project/<Loại>/<Module>/`, binary qua Git LFS.
-- Không push trực tiếp `main`.
+- Không push trực tiếp `main`/`dev`; nhánh cá nhân PR vào `dev`, chỉ `dev` PR vào `main`.
 - Commit theo Conventional Commits.
 
 Chi tiết đầy đủ: xem `AGENTS.md`.

@@ -30,7 +30,7 @@ Recreate_The_World/
 │   ├── coding-conventions.md    # Quy ước code, asset, nhánh, commit, PR
 │   └── performance-benchmarks/  # Báo cáo hiệu năng theo mốc
 ├── .github/
-│   ├── workflows/               # CI: commitlint, branch-name
+│   ├── workflows/               # CI: ci.yml (commit, branch, format, Unity)
 │   └── pull_request_template.md # Template PR
 ├── scripts/                     # Script dùng chung local + CI
 ├── .ai/                         # Cấu hình AI agent (đọc AGENTS.md)
@@ -124,6 +124,7 @@ Hiện chưa có test case — chỉ mới có asmdef và khung thư mục.
 |---|---|
 | `npm run check:branch` | Kiểm tra tên nhánh hiện tại |
 | `sh scripts/check-branch-name.sh <ten-nhanh>` | Kiểm tra một tên nhánh bất kỳ |
+| `npm run check:format` | Kiểm tra format + cú pháp JSON/YAML toàn repo |
 | `echo "feat: mo ta" \| npx commitlint` | Kiểm tra commit message |
 | `npx commitlint --last` | Kiểm tra commit gần nhất |
 | `git lfs ls-files` | Xem file đang quản lý bởi LFS |
@@ -134,10 +135,10 @@ Hiện chưa có test case — chỉ mới có asmdef và khung thư mục.
 
 Tóm tắt; chi tiết ở [`docs/coding-conventions.md`](docs/coding-conventions.md).
 
-1. Cập nhật `main`, tạo nhánh đúng quy ước:
+1. Cập nhật `dev`, tạo nhánh đúng quy ước:
 
    ```bash
-   git switch main && git pull
+   git switch dev && git pull
    git switch -c feat/<ten-ngan>
    ```
 
@@ -149,14 +150,32 @@ Tóm tắt; chi tiết ở [`docs/coding-conventions.md`](docs/coding-convention
 
    Type hợp lệ: `feat`, `fix`, `refactor`, `perf`, `test`, `docs`, `chore`, `build`, `ci`, `revert`.
 
-3. Push nhánh, mở **Pull Request** vào `main`
-4. Chờ CI xanh (`commitlint`, `branch-name`) và review
-5. Squash merge, xóa nhánh
+3. Rebase lên `dev` mới nhất trước khi mở PR:
+
+   ```bash
+   git fetch origin
+   git rebase origin/dev
+   git push --force-with-lease
+   ```
+
+   Không merge `dev` vào nhánh feature, không tạo merge commit.
+
+4. Push nhánh, mở **Pull Request** vào `dev`
+5. Chờ CI xanh (`.github/workflows/ci.yml`) và review
+6. **Rebase and merge** vào `dev`, xóa nhánh sau khi merge
+7. Khi `dev` ổn định: mở **promotion PR** `dev` → `main`, title `chore(release): promote dev to main`, rebase-merge để `main` fast-forward
+
+```text
+feat/*  fix/*  docs/* ... ──PR──► dev ──PR──► main
+```
 
 Quy tắc cứng:
 
-- **Không push trực tiếp `main`** — mọi thay đổi qua PR
-- Tên nhánh: `main`, `release/x.y.z`, hoặc `<type>/<ten-ngan>` (chữ thường, `-`/`.`/`_`)
+- **Không push trực tiếp `main` hoặc `dev`** — mọi thay đổi qua PR
+- **Nhánh cá nhân chỉ PR vào `dev`**; chỉ `dev` được PR vào `main`
+- **Không dùng merge commit hay squash merge** — chỉ rebase
+- Force push chỉ với `--force-with-lease`, chỉ trên nhánh cá nhân
+- Tên nhánh: `main`, `dev`, `release/x.y.z`, hoặc `<type>/<ten-ngan>` (chữ thường, `-`/`.`/`_`)
 - **Luôn commit `.meta`** đi cùng asset; không xóa/tạo lại `.meta`
 - Không commit `Library/`, `Temp/`, `Logs/`, `UserSettings/`, `Builds/`, `*.csproj`, `*.sln`
 

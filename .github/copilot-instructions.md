@@ -14,7 +14,8 @@ Trước khi gợi ý/sửa code trong repo này:
 - Dependency một chiều: `Game.Core` → `Game.Scripts` → test assemblies.
 - Không xóa/tạo lại file `.meta`; không commit `Library/`, `Temp/`, `Logs/`, `UserSettings/`, `Builds/`, `*.csproj`, `*.sln`.
 - Asset đặt đúng `Assets/_Project/<Loại>/<Module>/`; binary đi qua Git LFS.
-- Không push trực tiếp `main`; nhánh theo regex trong `docs/coding-conventions.md` mục 3.1.
+- Không push trực tiếp `main`/`dev`; nhánh theo regex trong `docs/coding-conventions.md` mục 3.1.
+- Luồng PR: `<type>/*` → `dev`; chỉ `dev` được PR vào `main`.
 - Commit theo Conventional Commits: `<type>(<scope>): <mô tả>`.
 
 ## Auto-commit

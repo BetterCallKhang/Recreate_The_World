@@ -28,7 +28,7 @@ Không được tự suy đoán kiến trúc khi đã có tài liệu. Nếu tà
 - **Asset đặt đúng cấu trúc** `Assets/_Project/<Loại>/<Module>/`; file binary đi qua Git LFS.
 - **Không sửa** `Assets/Settings/` (URP template) trừ khi task yêu cầu rõ.
 - **Không commit secret**: `.env`, khóa, token, đường dẫn tuyệt đối của máy cá nhân.
-- **Không push trực tiếp `main`.** Mọi thay đổi đi qua nhánh + PR.
+- **Không push trực tiếp `main` hoặc `dev`.** Mọi thay đổi đi qua nhánh + PR; `main` chỉ nhận PR từ `dev`.
 
 ## 3. Quy trình làm việc
 
@@ -41,18 +41,26 @@ Không được tự suy đoán kiến trúc khi đã có tài liệu. Nếu tà
 Quy tắc an toàn:
 
 - Không xóa file untracked của người dùng nếu chưa xác nhận đó là file rác.
-- Không `git reset --hard`, `git clean`, force push, rewrite history trừ khi được yêu cầu rõ.
+- Không `git reset --hard`, `git clean`, rewrite history trừ khi được yêu cầu rõ.
 - Không sửa file ngoài repo hoặc chạy lệnh phá hủy dữ liệu.
+- **Ngoại lệ duy nhất cho force push:** được `git push --force-with-lease` **nhánh cá nhân của chính mình** sau khi rebase. Không bao giờ force push `main`, `release/*` hay nhánh người khác, không dùng `--force`.
 
 ## 4. Git: nhánh và commit
 
 **Nhánh** phải khớp:
 
 ```text
-^(main|release/\d+\.\d+\.\d+|(feat|fix|refactor|perf|test|docs|chore|build|ci|revert)/[a-z0-9][a-z0-9._-]*|(dependabot|renovate)/.*)$
+^(main|dev|release/\d+\.\d+\.\d+|(feat|fix|refactor|perf|test|docs|chore|build|ci|revert)/[a-z0-9][a-z0-9._-]*|(dependabot|renovate)/.*)$
 ```
 
 Kiểm tra: `npm run check:branch`
+
+**Luồng nhánh:**
+
+- `<type>/*` → PR vào `dev`
+- `dev` → PR vào `main` (promotion)
+- `release/x.y.z` (tùy chọn) → PR vào `dev`
+- Không PR trực tiếp từ nhánh cá nhân vào `main`; không PR ngược `main` → `dev`.
 
 **Commit** theo Conventional Commits, type lowercase:
 
@@ -64,6 +72,14 @@ Kiểm tra: `npm run check:branch`
 - Scope tùy chọn, lowercase (`player`, `enemy`, `ui`, `assets`, `docs`, `ci`...).
 - Header ≤ 100 ký tự.
 - Kiểm tra: `npm run commitlint -- --last` hoặc `echo "feat(x): mo ta" | npx commitlint`
+
+**Rebase, không merge:**
+
+- Dự án dùng **rebase** để đồng bộ nhánh và **"Rebase and merge"** trên GitHub. Không tạo merge commit, không squash.
+- Đồng bộ: `git fetch origin && git rebase origin/dev`.
+- Không `git merge dev` vào nhánh feature.
+- Sau rebase: `git push --force-with-lease` (chỉ nhánh cá nhân).
+- Conflict: sửa file → `git add <file>` → `git rebase --continue`; bỏ cuộc: `git rebase --abort`.
 
 ## 5. Biến điều khiển hành vi agent
 
@@ -88,7 +104,7 @@ Quy tắc bổ sung:
   - Chỉ chứa thay đổi thuộc task hiện tại
   - Không chứa file rác, secret, `Library/`, build
   - Message đúng Conventional Commits và pass `npx commitlint`
-  - Không commit lên `main` nếu đang ở nhánh sai
+  - Không commit lên `main`/`dev` nếu đang ở nhánh sai
 - Người dùng yêu cầu trực tiếp ("commit giúp tôi") luôn được ưu tiên, kể cả khi flag là `false`, nhưng agent phải nêu rõ sẽ commit những gì.
 - **Push/PR luôn cần người dùng xác nhận**, bất kể flag.
 
@@ -136,6 +152,13 @@ Nếu không thể chạy (ví dụ không có Unity Editor trong môi trường
 - Nêu rõ phần chưa làm / chưa kiểm chứng được.
 - Không tự commit khi `autoCommit = false`.
 - Không giả vờ đã chạy lệnh hoặc đã đọc file nếu chưa.
+
+**Không lạm dụng icon/emoji:**
+
+- Không dùng emoji trong câu trả lời, tài liệu, comment code, commit message, tên file/thư mục, heading — trừ khi người dùng yêu cầu rõ.
+- Không trang trí bằng icon để thay cho nội dung; dùng chữ hoặc bảng.
+- Ngoại lệ: `✅`/`❌` trong GitHub Actions step summary/annotation để đánh dấu pass/fail. Không dùng trong tài liệu dự án hay giao tiếp thường ngày.
+- Không dùng icon trong code C# (kể cả comment) vì có thể lỗi encoding trên một số công cụ.
 
 ## 9. Definition of Done
 

@@ -6,8 +6,8 @@ Cấu hình cho AI agent làm việc trong repo.
 
 | File | Commit? | Mục đích |
 |---|---|---|
-| `config.json` | ✅ | Cấu hình chung của dự án |
-| `config.local.json` | ❌ (gitignore) | Override riêng cho máy cá nhân |
+| `config.json` | Có | Cấu hình chung của dự án |
+| `config.local.json` | Không (gitignore) | Override riêng cho máy cá nhân |
 
 ## config.json
 
@@ -35,7 +35,7 @@ Sửa `config.json` (áp dụng cho cả nhóm) hoặc tạo `config.local.json`
 { "autoCommit": true, "writeTests": false }
 ```
 
-`config.local.json` được merge đè lên `config.json`; nếu không có thì dùng `config.json`; nếu cả hai đều thiếu key thì mặc định `autoCommit = false`, `writeTests = true`.
+`config.local.json` được áp đè lên `config.json`; nếu không có thì dùng `config.json`; nếu cả hai đều thiếu key thì mặc định `autoCommit = false`, `writeTests = true`.
 
 ## Skills cá nhân (không commit)
 

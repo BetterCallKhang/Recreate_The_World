@@ -83,8 +83,9 @@ Quy tắc thêm:
 
 | Nhánh | Mục đích |
 |---|---|
-| `main` | Nhánh ổn định, luôn mở được project. **Cấm push trực tiếp** |
-| `release/<x.y.z>` | Nhánh phát hành, ví dụ `release/1.0.0` |
+| `main` | Production, luôn ổn định. **Chỉ nhận PR từ `dev`**. Cấm push trực tiếp |
+| `dev` | Nhánh tích hợp. **Mọi PR tính năng/sửa lỗi nhắm vào đây**. Cấm push trực tiếp |
+| `release/<x.y.z>` | Nhánh ổn định phát hành (tùy chọn), cắt từ `dev`, sau đó PR về `dev` |
 | `feat/<ten-ngan>` | Tính năng mới |
 | `fix/<ten-ngan>` | Sửa lỗi |
 | `refactor/<ten-ngan>` | Tái cấu trúc |
@@ -96,6 +97,18 @@ Quy tắc thêm:
 | `ci/<ten-ngan>` | CI/CD |
 | `revert/<ten-ngan>` | Revert |
 
+Luồng hợp lệ:
+
+```text
+feat/*  fix/*  docs/*  chore/* ...  ──PR──►  dev  ──PR──►  main
+                                             ▲              │
+                                             └── không PR ngược ──┘
+```
+
+- Nhánh cá nhân **không bao giờ** PR trực tiếp vào `main`.
+- `dev` → `main` chỉ khi `dev` đã pass CI và được review (promotion).
+- `main` không merge ngược vào `dev`. Lỗi trên `main` được sửa bằng nhánh mới từ `dev` rồi đi lại luồng.
+
 Quy tắc bắt buộc:
 
 - `<ten-ngan>` dùng **chữ thường**, số, `-`, `.`, `_`; bắt đầu bằng chữ/số.
@@ -103,13 +116,13 @@ Quy tắc bắt buộc:
 - Regex kiểm tra:
 
 ```text
-^(main|release/\d+\.\d+\.\d+|(feat|fix|refactor|perf|test|docs|chore|build|ci|revert)/[a-z0-9][a-z0-9._-]*|(dependabot|renovate)/.*)$
+^(main|dev|release/\d+\.\d+\.\d+|(feat|fix|refactor|perf|test|docs|chore|build|ci|revert)/[a-z0-9][a-z0-9._-]*|(dependabot|renovate)/.*)$
 ```
 
 Ràng buộc tự động:
 
 - **Local:** hook `.husky/pre-push` gọi `scripts/check-branch-name.sh` — chặn push nếu tên nhánh sai.
-- **CI:** `.github/workflows/branch-name.yml` kiểm tra tên nhánh nguồn của mọi PR.
+- **CI:** `.github/workflows/ci.yml` (job `branch_name`) kiểm tra tên nhánh nguồn **và luồng PR** (chặn PR sai đích).
 - **Thủ công:** `npm run check:branch` hoặc `sh scripts/check-branch-name.sh <ten-nhanh>`.
 
 ### 3.2 Commit
@@ -151,30 +164,51 @@ Repo dùng **husky + commitlint** để chặn commit sai format ngay trên máy
 |---|---|
 | Hook | `.husky/commit-msg` |
 | Cấu hình | `.commitlintrc.cjs` |
-| CI | `.github/workflows/commitlint.yml` |
+| CI | `.github/workflows/ci.yml` (job `commitlint`) |
 
 - Cài lần đầu: `npm install` — script `prepare` tự cài hook husky.
 - Hook `commit-msg` chạy `commitlint --edit` và chặn commit nếu message sai.
 - Kiểm tra thủ công: `echo "feat(player): them double jump" | npx commitlint`
 - Bỏ qua hook chỉ khi thật cần: `git commit --no-verify`
-- CI `commitlint.yml` kiểm tra lại toàn bộ commit trên PR và push vào `main`, đồng thời kiểm tra **PR title** vì squash merge lấy title làm commit message.
+- CI `ci.yml` (job `commitlint`) kiểm tra lại toàn bộ commit trên PR và push vào `dev`/`main`, đồng thời kiểm tra **PR title** để giữ format thống nhất trong danh sách PR / release note.
 
 ### 3.4 Pull Request
 
-**Mọi thay đổi vào `main` phải qua Pull Request.** Không push trực tiếp, không merge local rồi push.
+**Mọi thay đổi vào `dev` và `main` phải qua Pull Request.** Không push trực tiếp; không merge nhánh ở local rồi push; **không dùng merge commit**.
 
-Luồng làm việc:
+Mô hình 2 tầng:
 
-1. Cập nhật `main`, tạo nhánh: `git switch main && git pull && git switch -c feat/<ten-ngan>`
+| Loại PR | Từ → đến | Khi nào |
+|---|---|---|
+| Feature PR | `<type>/*` → `dev` | Mọi tính năng, sửa lỗi, tài liệu, CI... |
+| Promotion PR | `dev` → `main` | Khi `dev` đã ổn định, sẵn sàng phát hành |
+| Release PR (tùy chọn) | `release/x.y.z` → `dev` | Sau khi ổn định nhánh release |
+
+**Feature PR:**
+
+1. Cập nhật `dev`, tạo nhánh: `git switch dev && git pull && git switch -c feat/<ten-ngan>`
 2. Commit theo Conventional Commits, push nhánh lên `origin`
-3. Mở PR vào `main`, dùng template `.github/pull_request_template.md`
-4. Chờ CI xanh và được review
-5. Squash merge, xóa nhánh sau khi merge
+3. Rebase lên `dev` mới nhất trước khi mở/cập nhật PR (xem mục 3.5)
+4. Mở PR vào `dev`, dùng template `.github/pull_request_template.md`
+5. Chờ CI xanh và được review
+6. **Rebase and merge** trên GitHub — giữ từng commit, lịch sử thẳng
+7. Xóa nhánh sau khi merge
+
+**Promotion PR (`dev` → `main`):**
+
+1. `dev` phải xanh toàn bộ CI và đã được review
+2. Mở PR `dev` → `main`, title dạng `chore(release): promote dev to main`
+3. **Rebase and merge** — `dev` đang đi trước `main` nên `main` chỉ fast-forward, không tạo commit mới
+4. Tag phiên bản trên `main` nếu phát hành
+
+Lưu ý: `main` **không** merge ngược vào `dev`. Nếu phát hiện lỗi trên `main`, sửa bằng nhánh mới từ `dev` rồi đi lại luồng `feature → dev → main`.
 
 Checklist trước khi mở PR:
 
-- [ ] Tên nhánh đúng quy ước (mục 3.1), CI `branch-name` xanh
+- [ ] Tên nhánh đúng quy ước (mục 3.1), CI xanh
+- [ ] PR nhắm đúng đích: `<type>/*` → `dev`, `dev` → `main`
 - [ ] Commit message đúng Conventional Commits, CI `commitlint` xanh
+- [ ] Đã rebase lên `dev` mới nhất, không có merge commit
 - [ ] Project mở được, không lỗi compile trong Console
 - [ ] Chạy Test Runner (EditMode, PlayMode nếu có)
 - [ ] Không commit `Library/`, `Temp/`, `Logs/`, `UserSettings/`, `Builds/`
@@ -184,19 +218,59 @@ Checklist trước khi mở PR:
 
 Required checks trên PR:
 
-| Check | Workflow | Kiểm tra gì |
+| Check | Job trong `ci.yml` | Kiểm tra gì |
 |---|---|---|
-| Commit message | `commitlint.yml` | Toàn bộ commit trong PR/push + **PR title** (dùng cho squash merge) |
-| Branch name | `branch-name.yml` | Tên nhánh nguồn của PR |
-| Unity compile/test | `unity-check.yml` (khi có) | Compile + EditMode test |
+| Commit message | `commitlint` | Toàn bộ commit trong PR/push + **PR title** (format thống nhất) |
+| Branch + luồng PR | `branch_name` | Tên nhánh nguồn và đích PR (`dev`/`main`) |
+| Unity compile/test | `unity_check` | Format + compile + EditMode test, **chỉ chạy khi có thay đổi Unity** |
+| Gate | `ci_result` | Tổng hợp kết quả, dùng làm required check duy nhất |
 
-Bật bảo vệ nhánh trên GitHub (làm 1 lần bởi owner):
+Required check trên GitHub: chỉ cần bật **`CI`** (job `ci_result`). Job này tự pass khi `unity_check` bị skip do không có commit nào đụng vào project Unity.
 
-- **Settings ▸ Rules ▸ Rulesets** (hoặc **Branches**) → target `main`
-- Bật: *Require a pull request before merging*, *Require status checks to pass*, *Block force pushes*
-- Không cấp quyền push trực tiếp `main` cho thành viên
+Cấu hình GitHub (làm 1 lần bởi owner):
+
+- **Settings ▸ General ▸ Default branch**: giữ `main` — đây là nhánh ổn định để clone/release. Khi mở PR, **đổi base sang `dev`** (GitHub mặc định chọn `main`). Nếu dùng bot, cấu hình `target-branch: dev`.
+- **Settings ▸ General ▸ Pull Requests**: chỉ bật **Allow rebase merging**; tắt **Allow merge commits** và **Allow squash merging**.
+- **Settings ▸ Rules ▸ Rulesets** → target cả `main` và `dev`:
+  - *Require a pull request before merging*
+  - *Require status checks to pass* — chọn `CI`
+  - *Require linear history*
+  - *Block force pushes*
+- Không cấp quyền push trực tiếp `main`/`dev` cho thành viên.
 
 Quy ước review: PR nhỏ (< ~400 dòng), mô tả rõ **làm gì** và **cách test**.
+
+### 3.5 Rebase và đồng bộ nhánh
+
+Dự án dùng **rebase**, không merge `dev` vào nhánh feature. Mục tiêu: lịch sử thẳng, không merge commit.
+
+```bash
+git fetch origin
+git rebase origin/dev
+```
+
+Khi có conflict:
+
+```bash
+# sửa file conflict
+git add <file>
+git rebase --continue
+```
+
+Sau khi rebase, nhánh đã bị viết lại → phải force push:
+
+```bash
+git push --force-with-lease
+```
+
+Quy tắc:
+
+- Chỉ dùng `--force-with-lease`; **không** dùng `--force`.
+- Chỉ force push **nhánh cá nhân của mình**. Tuyệt đối không force push `main`, `dev`, `release/*`, hoặc nhánh người khác.
+- Không `git merge dev` vào nhánh feature.
+- Hủy rebase khi cần: `git rebase --abort`.
+- Nhánh có nhiều người cùng làm → không rebase; mỗi người tạo nhánh riêng.
+- `dev` luôn đi trước `main`; không cần đồng bộ `dev` từ `main`.
 
 ## 4. Web (`src/download-web`)
 
@@ -214,3 +288,4 @@ Quy ước review: PR nhỏ (< ~400 dòng), mô tả rõ **làm gì** và **các
 - README của Unity project: `src/Recreate_The_World/README.md`.
 - Thay đổi lớn về kiến trúc phải cập nhật `docs/architecture.md` trong cùng PR.
 - **AI agent** phải đọc `AGENTS.md` và `.ai/config.json` trước khi làm việc. `AGENTS.md` là nguồn luật duy nhất; `CLAUDE.md`, `.github/copilot-instructions.md`, `.cursor/rules/project.mdc` chỉ là con trỏ tới nó.
+- Không dùng emoji/icon trang trí trong docs, comment, commit message hay tên file (xem `AGENTS.md` mục 8).

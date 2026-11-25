@@ -124,7 +124,7 @@ src/download-web/
 Luồng deploy dự kiến:
 
 ```
-merge main/release
+PR vào dev → promotion dev → main
         │
         ▼
 web-ci (lint + test + build)

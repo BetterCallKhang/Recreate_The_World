@@ -57,12 +57,10 @@ Các mục dưới là lựa chọn dự kiến, sẽ chốt khi bắt đầu l�
 
 | Pipeline | Mục đích |
 |---|---|
-| `commitlint.yml` | Kiểm tra commit message + PR title (Conventional Commits) |
-| `branch-name.yml` | Kiểm tra tên nhánh nguồn của PR |
-| `unity-check.yml` | Format C# + chạy EditMode test |
-| `unity-build-playmode.yml` | PlayMode test + build thử game |
-| `web-ci.yml` | Lint, unit test, build thử web |
-| `web-cd.yml` | Build Docker image & deploy khi merge `main`/`release` |
+| `ci.yml` | Gate chung: commit message, tên nhánh + luồng PR, format, Unity EditMode (chỉ chạy khi có thay đổi Unity) |
+| `unity-build-playmode.yml` | (dự kiến) PlayMode test + build thử game |
+| `web-ci.yml` | (dự kiến) Lint, unit test, build thử web |
+| `web-cd.yml` | (dự kiến) Build Docker image & deploy khi push `main`/`release` |
 
 ## 5. Môi trường phát triển
 
@@ -86,6 +84,8 @@ Các mục dưới là lựa chọn dự kiến, sẽ chốt khi bắt đầu l�
 | @commitlint/cli | `21.2.4` | Kiểm tra commit message |
 | @commitlint/config-conventional | `21.2.4` | Bộ luật Conventional Commits |
 
-Cấu hình commit: `.commitlintrc.cjs` · Hook: `.husky/commit-msg` · CI: `.github/workflows/commitlint.yml`
+Cấu hình commit: `.commitlintrc.cjs` · Hook: `.husky/commit-msg` · CI: `.github/workflows/ci.yml` (job `commitlint`)
 
-Kiểm tra tên nhánh: `scripts/check-branch-name.sh` · Hook: `.husky/pre-push` · CI: `.github/workflows/branch-name.yml`
+Kiểm tra tên nhánh: `scripts/check-branch-name.sh` · Hook: `.husky/pre-push` · CI: `.github/workflows/ci.yml` (job `branch_name`)
+
+Kiểm tra format + Unity: `scripts/check-format.sh` · CI: `.github/workflows/ci.yml` (job `unity_check`)

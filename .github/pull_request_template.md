@@ -11,8 +11,11 @@
 
 ## Checklist
 
-- [ ] Nhanh dat ten dung quy uoc (`feat/...`, `fix/...`, ...), khong push truc tiep len `main`
+- [ ] Nhanh dat ten dung quy uoc (`feat/...`, `fix/...`, ...), khong push truc tiep len `main`/`dev`
+- [ ] PR nham dung dich: `<type>/*` → `dev`; chi `dev` duoc PR vao `main`
+- [ ] Da rebase len `dev` moi nhat, khong co merge commit (`git fetch origin && git rebase origin/dev`)
 - [ ] Commit message dung Conventional Commits
+- [ ] PR title dung Conventional Commits (`<type>(scope): mo ta`)
 - [ ] Project mo duoc, Console khong co loi compile
 - [ ] Da chay Test Runner (EditMode; PlayMode neu lien quan gameplay)
 - [ ] Khong commit `Library/`, `Temp/`, `Logs/`, `UserSettings/`, `Builds/`
