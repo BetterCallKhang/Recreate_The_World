@@ -2,6 +2,11 @@
 
 Tài liệu này là **nguồn duy nhất** hướng dẫn review code cho cả team (AI agent và developer). Mục tiêu: review nhanh, nhất quán, không lan man.
 
+## Kiểm tra bắt buộc trước merge
+
+- [ ] Job `CI` toàn bộ pass: commitlint, branch, format, compile + test.
+- [ ] Khi có thay đổi Unity: job `unity_compile` pass (biên dịch + EditMode test) — xem [`CONTRIBUTING.md`](CONTRIBUTING.md).
+
 ## Quy trình review
 
 1. **Author tự review** trước khi mở PR: chạy checklist bên dưới, sửa trước khi mở PR.
