@@ -246,10 +246,113 @@ jobs:
           } >> "$GITHUB_STEP_SUMMARY"
 
   # ---------------------------------------------------------------------------
-  # 4. Unity: format + compile + EditMode test (chỉ khi có thay đổi Unity)
+  # 4. Các job Unity: chỉ chạy khi commit + branch đã pass VÀ có thay đổi Unity.
+  #    Mỗi job một việc nhỏ, báo lỗi độc lập (annotation + summary + artifact).
   # ---------------------------------------------------------------------------
-  unity_check:
-    name: Unity compile, test and format
+  format_check:
+    name: Format and syntax
+    needs: [commitlint, branch_name, changes]
+    if: |
+      always() &&
+      needs.changes.outputs.unity == 'true' &&
+      needs.commitlint.result == 'success' &&
+      (needs.branch_name.result == 'success' || needs.branch_name.result == 'skipped')
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Check format and syntax
+        run: |
+          mkdir -p artifacts
+          set -o pipefail
+          bash scripts/check-format.sh 2>&1 | tee artifacts/format.log
+
+      - name: Upload log
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: format-log
+          path: artifacts/
+          if-no-files-found: ignore
+
+  unity_project:
+    name: Unity project rules
+    needs: [commitlint, branch_name, changes]
+    if: |
+      always() &&
+      needs.changes.outputs.unity == 'true' &&
+      needs.commitlint.result == 'success' &&
+      (needs.branch_name.result == 'success' || needs.branch_name.result == 'skipped')
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Check .meta, asmdef and Game.Core purity
+        run: |
+          mkdir -p artifacts
+          set -o pipefail
+          bash scripts/check-unity-project.sh 2>&1 | tee artifacts/unity-project.log
+
+      - name: Upload log
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: unity-project-log
+          path: artifacts/
+          if-no-files-found: ignore
+
+  csharp_format:
+    name: C# format
+    needs: [commitlint, branch_name, changes]
+    if: |
+      always() &&
+      needs.changes.outputs.unity == 'true' &&
+      needs.commitlint.result == 'success' &&
+      (needs.branch_name.result == 'success' || needs.branch_name.result == 'skipped')
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 8.0.x
+
+      - name: Restore dotnet tools
+        run: dotnet tool restore
+
+      - name: Check C# formatting
+        run: |
+          mkdir -p artifacts
+          set -o pipefail
+          bash scripts/check-csharp-format.sh 2>&1 | tee artifacts/csharp-format.log
+
+      - name: Upload log
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: csharp-format-log
+          path: artifacts/
+          if-no-files-found: ignore
+
+  unity_compile:
+    name: Unity compile and EditMode test
     needs: [commitlint, branch_name, changes]
     if: |
       always() &&
@@ -264,9 +367,6 @@ jobs:
         with:
           lfs: true
           fetch-depth: 1
-
-      - name: Check format
-        run: bash scripts/check-format.sh
 
       - name: Check Unity license
         id: license
@@ -286,7 +386,7 @@ jobs:
             {
               echo "### Chưa cấu hình Unity license"
               echo ""
-              echo "Bước compile/test đã bị bỏ qua. Format vẫn được kiểm tra."
+              echo "Bước compile/test đã bị bỏ qua. Các bước format, .meta, asmdef vẫn chạy bình thường."
               echo ""
               echo "Thêm một trong các bộ secrets sau trong **Settings ▸ Secrets and variables ▸ Actions**:"
               echo ""
@@ -325,7 +425,7 @@ jobs:
   ci_result:
     name: CI
     if: always()
-    needs: [commitlint, branch_name, changes, unity_check]
+    needs: [commitlint, branch_name, changes, format_check, unity_project, csharp_format, unity_compile]
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
@@ -334,7 +434,11 @@ jobs:
           COMMITLINT: ${{ needs.commitlint.result }}
           BRANCH_NAME: ${{ needs.branch_name.result }}
           CHANGES: ${{ needs.changes.result }}
-          UNITY: ${{ needs.unity_check.result }}
+          UNITY_CHANGED: ${{ needs.changes.outputs.unity }}
+          FORMAT: ${{ needs.format_check.result }}
+          UNITY_PROJECT: ${{ needs.unity_project.result }}
+          CSHARP: ${{ needs.csharp_format.result }}
+          UNITY: ${{ needs.unity_compile.result }}
         run: |
           failed=0
 
@@ -355,7 +459,22 @@ jobs:
           check "commitlint" "$COMMITLINT" "success"
           check "branch_name" "$BRANCH_NAME" "success skipped"
           check "changes" "$CHANGES" "success"
-          check "unity_check" "$UNITY" "success skipped"
+          check "format_check" "$FORMAT" "success skipped"
+          check "unity_project" "$UNITY_PROJECT" "success skipped"
+          check "csharp_format" "$CSHARP" "success skipped"
+          check "unity_compile" "$UNITY" "success skipped"
+
+          # Có thay đổi Unity thì không job nào trong nhóm Unity được skip.
+          if [ "$UNITY_CHANGED" = "true" ]; then
+            for pair in "format_check:$FORMAT" "unity_project:$UNITY_PROJECT" "csharp_format:$CSHARP" "unity_compile:$UNITY"; do
+              job="${pair%%:*}"
+              result="${pair#*:}"
+              if [ "$result" != "success" ]; then
+                echo "::error title=CI thất bại::$job = '$result' dù có thay đổi Unity (không được skip)."
+                failed=1
+              fi
+            done
+          fi
 
           {
             echo "### Kết quả CI"
@@ -364,8 +483,11 @@ jobs:
             echo "|---|---|"
             echo "| Commit message | \`$COMMITLINT\` |"
             echo "| Branch name and PR flow | \`$BRANCH_NAME\` |"
-            echo "| Detect Unity changes | \`$CHANGES\` |"
-            echo "| Unity compile, test and format | \`$UNITY\` |"
+            echo "| Detect Unity changes | \`$CHANGES\` (unity=\`$UNITY_CHANGED\`) |"
+            echo "| Format and syntax | \`$FORMAT\` |"
+            echo "| Unity project rules | \`$UNITY_PROJECT\` |"
+            echo "| C# format | \`$CSHARP\` |"
+            echo "| Unity compile and EditMode test | \`$UNITY\` |"
           } >> "$GITHUB_STEP_SUMMARY"
 
           exit "$failed"

@@ -6,12 +6,22 @@ Quy ước chung cho toàn repo. Mục tiêu: code nhất quán, review nhanh, d
 
 ### 1.1 Format
 
-Áp dụng tự động bởi `.editorconfig` ở root:
+Format C# bằng **CSharpier** (cấu hình `.csharpierrc.json`, bỏ qua `Assets/ThirdParty/`):
+
+```bash
+dotnet tool restore                              # cài đúng version trong .config/dotnet-tools.json
+npm run format:csharp                            # format toàn bộ C# trong Assets
+npm run check:csharp                             # chỉ kiểm tra, không sửa
+```
+
+Áp dụng thêm cho mọi file text bởi `.editorconfig` ở root:
 
 - UTF-8, xuống dòng **LF**
 - Indent **4 space**, không dùng tab
 - Có dòng trống cuối file
 - Không để trailing whitespace (trừ `.meta`)
+
+CI chặn PR nếu `.cs` chưa format hoặc vi phạm `.editorconfig`. Lỗi được gắn đúng file:dòng trên PR.
 
 ### 1.2 Đặt tên
 
@@ -222,10 +232,20 @@ Required checks trên PR:
 |---|---|---|
 | Commit message | `commitlint` | Toàn bộ commit trong PR/push + **PR title** (format thống nhất) |
 | Branch + luồng PR | `branch_name` | Tên nhánh nguồn và đích PR (`dev`/`main`) |
-| Unity compile/test | `unity_check` | Format + compile + EditMode test, **chỉ chạy khi có thay đổi Unity** |
+| Format text | `format_check` | `.editorconfig` cho mọi file text + parse JSON/asmdef/YAML |
+| Quy tắc project Unity | `unity_project` | `.meta` đủ cặp, asmdef hợp lệ và đúng hướng, `Game.Core` không dùng UnityEngine |
+| Format C# | `csharp_format` | CSharpier trên `src/Recreate_The_World/Assets` |
+| Unity compile/test | `unity_compile` | Compile + EditMode test qua GameCI |
 | Gate | `ci_result` | Tổng hợp kết quả, dùng làm required check duy nhất |
 
-Required check trên GitHub: chỉ cần bật **`CI`** (job `ci_result`). Job này tự pass khi `unity_check` bị skip do không có commit nào đụng vào project Unity.
+Các job từ `format_check` đến `unity_compile` **chỉ chạy khi**:
+
+- `commitlint` pass, và `branch_name` pass (hoặc skip khi push trực tiếp lên `dev`/`main`), và
+- diff có ít nhất một file trong `src/Recreate_The_World/{Assets,ProjectSettings,Packages}`.
+
+Không có thay đổi Unity thì 4 job này skip và `CI` vẫn xanh. Nếu có thay đổi Unity mà một job bị skip, gate coi là lỗi. Mỗi lỗi hiện thành annotation đúng `file:dòng`, kèm bảng trong Step Summary và log được upload khi fail.
+
+Required check trên GitHub: chỉ cần bật **`CI`** (job `ci_result`).
 
 Cấu hình GitHub (làm 1 lần bởi owner):
 

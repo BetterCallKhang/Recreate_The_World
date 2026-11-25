@@ -33,6 +33,8 @@ Recreate_The_World/
 │   ├── workflows/               # CI: ci.yml (commit, branch, format, Unity)
 │   └── pull_request_template.md # Template PR
 ├── scripts/                     # Script dùng chung local + CI
+├── .config/                     # Pin dotnet tool (CSharpier)
+├── .csharpierrc.json            # Cấu hình format C#
 ├── .ai/                         # Cấu hình AI agent (đọc AGENTS.md)
 ├── .husky/                      # Git hook: commit-msg, pre-push
 ├── AGENTS.md                    # Luật bắt buộc cho AI agent
@@ -125,6 +127,9 @@ Hiện chưa có test case — chỉ mới có asmdef và khung thư mục.
 | `npm run check:branch` | Kiểm tra tên nhánh hiện tại |
 | `sh scripts/check-branch-name.sh <ten-nhanh>` | Kiểm tra một tên nhánh bất kỳ |
 | `npm run check:format` | Kiểm tra format + cú pháp JSON/YAML toàn repo |
+| `npm run check:unity` | Kiểm tra `.meta`, asmdef, `Game.Core` thuần C# |
+| `npm run check:csharp` | Kiểm tra format C# bằng CSharpier |
+| `npm run format:csharp` | Format C# (tự sửa file) |
 | `echo "feat: mo ta" \| npx commitlint` | Kiểm tra commit message |
 | `npx commitlint --last` | Kiểm tra commit gần nhất |
 | `git lfs ls-files` | Xem file đang quản lý bởi LFS |

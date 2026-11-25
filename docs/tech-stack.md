@@ -57,7 +57,7 @@ Các mục dưới là lựa chọn dự kiến, sẽ chốt khi bắt đầu l�
 
 | Pipeline | Mục đích |
 |---|---|
-| `ci.yml` | Gate chung: commit message, tên nhánh + luồng PR, format, Unity EditMode (chỉ chạy khi có thay đổi Unity) |
+| `ci.yml` | Gate chung, chia job nhỏ: commit message, tên nhánh + luồng PR, phát hiện thay đổi Unity, format text, quy tắc project Unity, format C#, compile + EditMode test. Các job Unity chỉ chạy khi commit/branch đã pass và có thay đổi trong `src/Recreate_The_World` |
 | `unity-build-playmode.yml` | (dự kiến) PlayMode test + build thử game |
 | `web-ci.yml` | (dự kiến) Lint, unit test, build thử web |
 | `web-cd.yml` | (dự kiến) Build Docker image & deploy khi push `main`/`release` |
@@ -72,6 +72,7 @@ Các mục dưới là lựa chọn dự kiến, sẽ chốt khi bắt đầu l�
 | Git LFS | Bắt buộc (`git lfs install`) |
 | Node.js | `>= 18` (dùng cho husky + commitlint) |
 | npm | Đi kèm Node.js |
+| .NET SDK | `8.0` (chạy CSharpier kiểm tra format C#) |
 | OS | Linux (hiện tại), Windows/macOS |
 
 ## 6. Công cụ repo
@@ -83,9 +84,14 @@ Các mục dưới là lựa chọn dự kiến, sẽ chốt khi bắt đầu l�
 | husky | `9.1.7` | Cài git hook `commit-msg` |
 | @commitlint/cli | `21.2.4` | Kiểm tra commit message |
 | @commitlint/config-conventional | `21.2.4` | Bộ luật Conventional Commits |
+| CSharpier | `0.30.6` | Format C# (khai báo trong `.config/dotnet-tools.json`) |
 
 Cấu hình commit: `.commitlintrc.cjs` · Hook: `.husky/commit-msg` · CI: `.github/workflows/ci.yml` (job `commitlint`)
 
 Kiểm tra tên nhánh: `scripts/check-branch-name.sh` · Hook: `.husky/pre-push` · CI: `.github/workflows/ci.yml` (job `branch_name`)
 
-Kiểm tra format + Unity: `scripts/check-format.sh` · CI: `.github/workflows/ci.yml` (job `unity_check`)
+Kiểm tra format text: `scripts/check-format.sh` · CI: job `format_check`
+
+Kiểm tra project Unity: `scripts/check-unity-project.sh` (`.meta`, asmdef, `Game.Core` thuần C#) · CI: job `unity_project`
+
+Kiểm tra format C#: `scripts/check-csharp-format.sh` · Cấu hình: `.csharpierrc.json`, `.csharpierignore` · CI: job `csharp_format`

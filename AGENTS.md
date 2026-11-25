@@ -28,6 +28,7 @@ Không được tự suy đoán kiến trúc khi đã có tài liệu. Nếu tà
 - **Asset đặt đúng cấu trúc** `Assets/_Project/<Loại>/<Module>/`; file binary đi qua Git LFS.
 - **Không sửa** `Assets/Settings/` (URP template) trừ khi task yêu cầu rõ.
 - **Không commit secret**: `.env`, khóa, token, đường dẫn tuyệt đối của máy cá nhân.
+- **Format C# bằng CSharpier** (`.csharpierrc.json`); không tự đổi style hoặc reformat file ngoài phạm vi task.
 - **Không push trực tiếp `main` hoặc `dev`.** Mọi thay đổi đi qua nhánh + PR; `main` chỉ nhận PR từ `dev`.
 
 ## 3. Quy trình làm việc
@@ -129,7 +130,7 @@ Tùy phạm vi thay đổi:
 
 | Thay đổi | Bắt buộc kiểm tra |
 |---|---|
-| Code C# | Compile trong Unity Console không lỗi. `writeTests = true`: test mới pass. Luôn chạy lại test hiện có |
+| Code C# | `npm run check:csharp` + `npm run check:unity`; compile trong Unity Console không lỗi. `writeTests = true`: test mới pass. Luôn chạy lại test hiện có |
 | ScriptableObject / prefab / scene | Mở scene chạy thử; không có `Missing` reference |
 | Asset mới | Có `.meta`; đúng folder/prefix; file lớn nằm trong LFS |
 | Workflow / script | `ruby -ryaml -e 'YAML.load_file(...)'` hoặc kiểm tra cú pháp; chạy thử script local |

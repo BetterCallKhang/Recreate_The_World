@@ -1,0 +1,9 @@
+# Code bên thứ ba không format lại.
+src/Recreate_The_World/Assets/ThirdParty/
+
+# Thư mục Unity sinh ra, không bao giờ commit.
+src/Recreate_The_World/Library/
+src/Recreate_The_World/Temp/
+src/Recreate_The_World/Logs/
+src/Recreate_The_World/Builds/
+src/Recreate_The_World/UserSettings/

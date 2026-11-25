@@ -16,6 +16,7 @@
 - [ ] Da rebase len `dev` moi nhat, khong co merge commit (`git fetch origin && git rebase origin/dev`)
 - [ ] Commit message dung Conventional Commits
 - [ ] PR title dung Conventional Commits (`<type>(scope): mo ta`)
+- [ ] Da chay `npm run check:format`, `npm run check:csharp`, `npm run check:unity`
 - [ ] Project mo duoc, Console khong co loi compile
 - [ ] Da chay Test Runner (EditMode; PlayMode neu lien quan gameplay)
 - [ ] Khong commit `Library/`, `Temp/`, `Logs/`, `UserSettings/`, `Builds/`
