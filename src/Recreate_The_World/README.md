@@ -2,8 +2,6 @@
 
 Project Unity của đồ án tốt nghiệp **Recreate The World** (game 2D, URP 2D).
 
-> Trạng thái: mới khởi tạo cấu trúc. `Assets/_Project/Scenes/SampleScene.unity` là scene mẫu dùng để kiểm tra pipeline, chưa có gameplay.
-
 ---
 
 ## Phiên bản
