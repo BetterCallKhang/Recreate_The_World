@@ -121,25 +121,7 @@ Hiện chưa có test case — chỉ mới có asmdef và khung thư mục.
 
 ---
 
-## 4. Lệnh thường dùng
-
-| Lệnh | Việc |
-|---|---|
-| `npm run check:branch` | Kiểm tra tên nhánh hiện tại |
-| `sh scripts/check-branch-name.sh <ten-nhanh>` | Kiểm tra một tên nhánh bất kỳ |
-| `npm run check:format` | Kiểm tra format + cú pháp JSON/YAML toàn repo |
-| `npm run check:unity` | Kiểm tra `.meta`, asmdef, `Game.Core` thuần C# |
-| `npm run check:csharp` | Kiểm tra format C# bằng CSharpier |
-| `npm run format:csharp` | Format C# (tự sửa file) |
-| `echo "feat: mo ta" \| npx commitlint` | Kiểm tra commit message |
-| `npx commitlint --last` | Kiểm tra commit gần nhất |
-| `git lfs ls-files` | Xem file đang quản lý bởi LFS |
-
-Quy trình đóng góp: [`CONTRIBUTING.md`](CONTRIBUTING.md).
-
----
-
-## 5. Tài liệu
+## 4. Tài liệu
 
 | File | Nội dung |
 |---|---|
@@ -153,7 +135,7 @@ Quy trình đóng góp: [`CONTRIBUTING.md`](CONTRIBUTING.md).
 
 ---
 
-## 6. Dành cho AI agent
+## 5. Dành cho AI agent
 
 Đọc [`AGENTS.md`](AGENTS.md) trước khi làm bất cứ thay đổi nào. Cấu hình hành vi nằm ở [`.ai/config.json`](.ai/config.json):
 

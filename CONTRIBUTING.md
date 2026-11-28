@@ -58,18 +58,36 @@ Quy tắc cứng:
 Trước khi mở PR và trước khi merge, cần đảm bảo các job kiểm tra biên dịch/test pass để job `CI` xanh:
 
 1. **Biên dịch Unity**: không lỗi compile trong Unity Editor (Console sạch). CI job `unity_compile` (GameCI) chạy tự động khi có thay đổi Unity + commit/branch pass.
-2. **Local**: chạy các check hỗ trợ:
+2. **Local**: chạy các check hỗ trợ (danh sách đầy đủ ở mục [Lệnh thường dùng](#lệnh-thường-dùng)):
 
    ```bash
    npm run check:csharp      # format C# (CSharpier)
    npm run check:unity       # .meta, asmdef, Game.Core purity
    npm run check:format      # format text + JSON/YAML
+   npm run check:ci          # CI/script (khi sửa workflow/script)
    ```
 
 3. **Test**: chạy Test Runner (EditMode) — CI chạy qua GameCI.
 4. **Checklist review**: xem [`docs/review.md`](docs/review.md); review phải yêu cầu compile/test pass trước khi approve.
 
-Nếu PR có thay đổi trong `src/Recreate_The_World/{Assets,ProjectSettings,Packages}`, CI sẽ chạy: `format_check`, `unity_project`, `csharp_format`, `unity_compile`. PR chỉ được merge khi job **`CI`** (gate `ci_result`) pass.
+`format_check` luôn chạy. Nếu PR có thay đổi trong `src/Recreate_The_World/{Assets,ProjectSettings,Packages}`, CI chạy thêm `unity_project`, `csharp_format`, `unity_compile`. Nếu PR sửa `.github/workflows`, `scripts/`, `.husky/`, `.config/`, `package*.json` hoặc config format/lint, CI chạy thêm `ci_checks`. PR chỉ được merge khi job **`CI`** (gate `ci_result`) pass.
+
+## Lệnh thường dùng
+
+| Lệnh | Việc |
+|---|---|
+| `npm run check:branch` | Kiểm tra tên nhánh hiện tại |
+| `sh scripts/check-branch-name.sh <ten-nhanh>` | Kiểm tra một tên nhánh bất kỳ |
+| `npm run check:format` | Kiểm tra format + cú pháp JSON/YAML toàn repo |
+| `npm run check:unity` | Kiểm tra `.meta`, asmdef, `Game.Core` thuần C# |
+| `npm run check:csharp` | Kiểm tra format C# bằng CSharpier |
+| `npm run check:ci` | Kiểm tra cú pháp shell/JS và YAML workflow (ShellCheck, `bash -n`, `node --check`) |
+| `npm run format:csharp` | Format C# (tự sửa file) |
+| `echo "feat: mo ta" \| npx commitlint` | Kiểm tra commit message |
+| `npx commitlint --last` | Kiểm tra commit gần nhất |
+| `git lfs ls-files` | Xem file đang quản lý bởi LFS |
+
+Chạy các lệnh trên trước khi mở PR. `check:ci` cần Node; ShellCheck là tùy chọn (thiếu thì chỉ cảnh báo).
 
 ## Ghi chú
 
