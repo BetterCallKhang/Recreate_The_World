@@ -57,7 +57,7 @@ Các mục dưới là lựa chọn dự kiến, sẽ chốt khi bắt đầu l�
 
 | Pipeline | Mục đích |
 |---|---|
-| `ci.yml` | Gate chung, chia job nhỏ: commit message, tên nhánh + luồng PR, phát hiện thay đổi Unity, format text, quy tắc project Unity, format C#, compile + EditMode test. Các job Unity chỉ chạy khi commit/branch đã pass và có thay đổi trong `src/Recreate_The_World` |
+| `ci.yml` | Gate chung, chia job nhỏ: commit message, tên nhánh + luồng PR, phát hiện thay đổi (Unity và CI/script), format text, quy tắc project Unity, format C#, kiểm tra CI/script, compile + EditMode test. Job Unity chỉ chạy khi có thay đổi trong `src/Recreate_The_World`; job CI/script chỉ chạy khi có thay đổi workflow/script/tooling; `format_check` luôn chạy |
 | `unity-build-playmode.yml` | (dự kiến) PlayMode test + build thử game |
 | `web-ci.yml` | (dự kiến) Lint, unit test, build thử web |
 | `web-cd.yml` | (dự kiến) Build Docker image & deploy khi push `main`/`release` |

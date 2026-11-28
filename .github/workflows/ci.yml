@@ -212,13 +212,14 @@ jobs:
     timeout-minutes: 5
     outputs:
       unity: ${{ steps.filter.outputs.unity }}
+      ci: ${{ steps.filter.outputs.ci }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
-      - name: Detect changes under src/Recreate_The_World
+      - name: Detect changes under src/Recreate_The_World and CI/tooling
         id: filter
         env:
           BASE_SHA: ${{ github.event.pull_request.base.sha || github.event.before }}
@@ -229,35 +230,69 @@ jobs:
           fi
 
           MERGE_BASE="$(git merge-base "$BASE_SHA" "$HEAD_SHA" 2>/dev/null || echo "$BASE_SHA")"
-          CHANGED="$(git diff --name-only "$MERGE_BASE" "$HEAD_SHA" -- \
+
+          UNITY_CHANGED="$(git diff --name-only "$MERGE_BASE" "$HEAD_SHA" -- \
             src/Recreate_The_World/Assets \
             src/Recreate_The_World/ProjectSettings \
             src/Recreate_The_World/Packages || true)"
 
+          CI_CHANGED="$(git diff --name-only "$MERGE_BASE" "$HEAD_SHA" -- \
+            .github/workflows \
+            scripts \
+            .husky \
+            .config \
+            package.json \
+            package-lock.json \
+            .commitlintrc.cjs \
+            .csharpierrc.json \
+            .csharpierignore \
+            .editorconfig || true)"
+
+          if [ -n "$UNITY_CHANGED" ]; then
+            echo "unity=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "unity=false" >> "$GITHUB_OUTPUT"
+          fi
+
+          if [ -n "$CI_CHANGED" ]; then
+            echo "ci=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "ci=false" >> "$GITHUB_OUTPUT"
+          fi
+
           {
-            echo "### Phạm vi thay đổi Unity"
+            echo "### Phạm vi thay đổi"
             echo ""
-            if [ -n "$CHANGED" ]; then
+            if [ -n "$UNITY_CHANGED" ]; then
+              echo "**Unity** (chạy job Unity):"
+              echo ""
               echo '```text'
-              echo "$CHANGED"
+              echo "$UNITY_CHANGED"
               echo '```'
-              echo "unity=true" >> "$GITHUB_OUTPUT"
             else
               echo "Không có file nào thay đổi trong project Unity."
-              echo "unity=false" >> "$GITHUB_OUTPUT"
+            fi
+            echo ""
+            if [ -n "$CI_CHANGED" ]; then
+              echo "**CI/script/tooling** (chạy job kiểm tra CI):"
+              echo ""
+              echo '```text'
+              echo "$CI_CHANGED"
+              echo '```'
+            else
+              echo "Không có file nào thay đổi trong CI/script/tooling."
             fi
           } >> "$GITHUB_STEP_SUMMARY"
 
   # ---------------------------------------------------------------------------
-  # 4. Các job Unity: chỉ chạy khi commit + branch đã pass VÀ có thay đổi Unity.
-  #    Mỗi job một việc nhỏ, báo lỗi độc lập (annotation + summary + artifact).
+  # 4. Các job kiểm tra: format luôn chạy; job Unity chỉ khi có thay đổi Unity;
+  #    job CI/script chỉ khi có thay đổi CI/script/tooling.
   # ---------------------------------------------------------------------------
   format_check:
     name: Format and syntax
     needs: [commitlint, branch_name, changes]
     if: |
       always() &&
-      needs.changes.outputs.unity == 'true' &&
       needs.commitlint.result == 'success' &&
       (needs.branch_name.result == 'success' || needs.branch_name.result == 'skipped')
     runs-on: ubuntu-latest
@@ -354,6 +389,39 @@ jobs:
           path: artifacts/
           if-no-files-found: ignore
 
+  ci_checks:
+    name: CI and scripts
+    needs: [commitlint, branch_name, changes]
+    if: |
+      always() &&
+      needs.changes.outputs.ci == 'true' &&
+      needs.commitlint.result == 'success' &&
+      (needs.branch_name.result == 'success' || needs.branch_name.result == 'skipped')
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Check CI, scripts and tooling
+        run: |
+          mkdir -p artifacts
+          set -o pipefail
+          bash scripts/check-ci-scripts.sh 2>&1 | tee artifacts/ci-scripts.log
+
+      - name: Upload log
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ci-scripts-log
+          path: artifacts/
+          if-no-files-found: ignore
+
   unity_compile:
     name: Unity compile and EditMode test
     needs: [commitlint, branch_name, changes]
@@ -442,7 +510,7 @@ jobs:
   ci_result:
     name: CI
     if: always()
-    needs: [commitlint, branch_name, changes, format_check, unity_project, csharp_format, unity_compile]
+    needs: [commitlint, branch_name, changes, format_check, unity_project, csharp_format, ci_checks, unity_compile]
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
@@ -452,9 +520,11 @@ jobs:
           BRANCH_NAME: ${{ needs.branch_name.result }}
           CHANGES: ${{ needs.changes.result }}
           UNITY_CHANGED: ${{ needs.changes.outputs.unity }}
+          CI_CHANGED: ${{ needs.changes.outputs.ci }}
           FORMAT: ${{ needs.format_check.result }}
           UNITY_PROJECT: ${{ needs.unity_project.result }}
           CSHARP: ${{ needs.csharp_format.result }}
+          CI_CHECKS: ${{ needs.ci_checks.result }}
           UNITY: ${{ needs.unity_compile.result }}
         run: |
           failed=0
@@ -476,14 +546,15 @@ jobs:
           check "commitlint" "$COMMITLINT" "success"
           check "branch_name" "$BRANCH_NAME" "success skipped"
           check "changes" "$CHANGES" "success"
-          check "format_check" "$FORMAT" "success skipped"
+          check "format_check" "$FORMAT" "success"
           check "unity_project" "$UNITY_PROJECT" "success skipped"
           check "csharp_format" "$CSHARP" "success skipped"
+          check "ci_checks" "$CI_CHECKS" "success skipped"
           check "unity_compile" "$UNITY" "success skipped"
 
-          # Có thay đổi Unity thì không job nào trong nhóm Unity được skip.
+          # Có thay đổi Unity thì các job Unity không được skip.
           if [ "$UNITY_CHANGED" = "true" ]; then
-            for pair in "format_check:$FORMAT" "unity_project:$UNITY_PROJECT" "csharp_format:$CSHARP" "unity_compile:$UNITY"; do
+            for pair in "unity_project:$UNITY_PROJECT" "csharp_format:$CSHARP" "unity_compile:$UNITY"; do
               job="${pair%%:*}"
               result="${pair#*:}"
               if [ "$result" != "success" ]; then
@@ -493,6 +564,12 @@ jobs:
             done
           fi
 
+          # Có thay đổi CI/script/tooling thì job ci_checks không được skip.
+          if [ "$CI_CHANGED" = "true" ] && [ "$CI_CHECKS" != "success" ]; then
+            echo "::error title=CI thất bại::ci_checks = '$CI_CHECKS' dù có thay đổi CI/script/tooling (không được skip)."
+            failed=1
+          fi
+
           {
             echo "### Kết quả CI"
             echo ""
@@ -500,10 +577,11 @@ jobs:
             echo "|---|---|"
             echo "| Commit message | \`$COMMITLINT\` |"
             echo "| Branch name and PR flow | \`$BRANCH_NAME\` |"
-            echo "| Detect Unity changes | \`$CHANGES\` (unity=\`$UNITY_CHANGED\`) |"
+            echo "| Detect changes | \`$CHANGES\` (unity=\`$UNITY_CHANGED\`, ci=\`$CI_CHANGED\`) |"
             echo "| Format and syntax | \`$FORMAT\` |"
             echo "| Unity project rules | \`$UNITY_PROJECT\` |"
             echo "| C# format | \`$CSHARP\` |"
+            echo "| CI and scripts | \`$CI_CHECKS\` |"
             echo "| Unity compile and EditMode test | \`$UNITY\` |"
           } >> "$GITHUB_STEP_SUMMARY"
 

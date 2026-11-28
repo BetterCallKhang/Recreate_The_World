@@ -233,18 +233,23 @@ Required checks trên PR:
 |---|---|---|
 | Commit message | `commitlint` | Toàn bộ commit trong PR/push + **PR title** (format thống nhất) |
 | Branch + luồng PR | `branch_name` | Tên nhánh nguồn và đích PR (`dev`/`main`) |
-| Format text | `format_check` | `.editorconfig` cho mọi file text + parse JSON/asmdef/YAML |
+| Phát hiện thay đổi | `changes` | Phân diff thành 2 nhóm: `unity` (Assets/ProjectSettings/Packages) và `ci` (workflow, script, tooling) |
+| Format text | `format_check` | `.editorconfig` cho mọi file text + parse JSON/asmdef/YAML; luôn chạy |
 | Quy tắc project Unity | `unity_project` | `.meta` đủ cặp, asmdef hợp lệ và đúng hướng, `Game.Core` không dùng UnityEngine |
 | Format C# | `csharp_format` | CSharpier trên `src/Recreate_The_World/Assets` |
+| CI và script | `ci_checks` | `bash -n`, ShellCheck, `node --check`, parse YAML workflow |
 | Unity compile/test | `unity_compile` | Compile + EditMode test qua GameCI |
 | Gate | `ci_result` | Tổng hợp kết quả, dùng làm required check duy nhất |
 
-Các job từ `format_check` đến `unity_compile` **chỉ chạy khi**:
+Các job kiểm tra chỉ chạy khi:
 
 - `commitlint` pass, và `branch_name` pass (hoặc skip khi push trực tiếp lên `dev`/`main`), và
-- diff có ít nhất một file trong `src/Recreate_The_World/{Assets,ProjectSettings,Packages}`.
+- đúng loại thay đổi:
+  - `format_check`: luôn chạy.
+  - `unity_project`, `csharp_format`, `unity_compile`: diff có file trong `src/Recreate_The_World/{Assets,ProjectSettings,Packages}`.
+  - `ci_checks`: diff có file trong `.github/workflows`, `scripts/`, `.husky/`, `.config/`, `package*.json` hoặc config format/lint.
 
-Không có thay đổi Unity thì 4 job này skip và `CI` vẫn xanh. Nếu có thay đổi Unity mà một job bị skip, gate coi là lỗi. Mỗi lỗi hiện thành annotation đúng `file:dòng`, kèm bảng trong Step Summary và log được upload khi fail.
+Chỉ sửa tài liệu (`.md`, `.txt`, `docs/`, `README`) thì chỉ `format_check` chạy; `CI` vẫn xanh nếu format đạt. Nếu có thay đổi Unity thì 3 job Unity không được skip; nếu có thay đổi CI/script thì `ci_checks` không được skip.
 
 Required check trên GitHub: chỉ cần bật **`CI`** (job `ci_result`).
 

@@ -9,6 +9,7 @@
     "check:format": "bash scripts/check-format.sh",
     "check:unity": "bash scripts/check-unity-project.sh",
     "check:csharp": "bash scripts/check-csharp-format.sh",
+    "check:ci": "bash scripts/check-ci-scripts.sh",
     "format:csharp": "dotnet csharpier src/Recreate_The_World/Assets",
     "prepare": "husky"
   },
