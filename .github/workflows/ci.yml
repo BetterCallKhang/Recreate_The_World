@@ -399,6 +399,9 @@ jobs:
             } >> "$GITHUB_STEP_SUMMARY"
           fi
 
+      - name: Check Unity docker image
+        run: docker pull unityci/editor:ubuntu-6000.3.29f1-linux-il2cpp-4
+
       - name: Run EditMode test (compile)
         if: steps.license.outputs.ready == 'true'
         uses: game-ci/unity-test-runner@v4
@@ -408,11 +411,13 @@ jobs:
           UNITY_PASSWORD: ${{ secrets.UNITY_PASSWORD }}
           UNITY_SERIAL: ${{ secrets.UNITY_SERIAL }}
         with:
-          unityVersion: auto
+          unityVersion: "6000.3.29f1"
+          projectPath: src/Recreate_The_World
           testMode: editmode
           artifactsPath: artifacts/editmode
           githubToken: ${{ secrets.GITHUB_TOKEN }}
           checkName: Unity EditMode
+          containerRegistryImageVersion: 4
 
       - name: Upload test artifacts
         if: always() && steps.license.outputs.ready == 'true'
