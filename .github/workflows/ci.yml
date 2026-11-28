@@ -399,6 +399,15 @@ jobs:
             } >> "$GITHUB_STEP_SUMMARY"
           fi
 
+      - name: Cache Unity Library
+        if: steps.license.outputs.ready == 'true'
+        uses: actions/cache@v4
+        with:
+          path: src/Recreate_The_World/Library
+          key: Library-${{ runner.os }}-${{ hashFiles('src/Recreate_The_World/ProjectSettings/ProjectVersion.txt') }}-${{ hashFiles('src/Recreate_The_World/Packages/manifest.json', 'src/Recreate_The_World/Packages/packages-lock.json') }}
+          restore-keys: |
+            Library-${{ runner.os }}-${{ hashFiles('src/Recreate_The_World/ProjectSettings/ProjectVersion.txt') }}-
+
       - name: Check Unity docker image
         run: docker pull unityci/editor:ubuntu-6000.3.29f1-linux-il2cpp-4
 

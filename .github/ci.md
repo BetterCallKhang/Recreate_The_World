@@ -135,15 +135,20 @@ Các bước:
    - `UNITY_SERIAL`, hoặc
    - đồng thời `UNITY_EMAIL` + `UNITY_PASSWORD`.
    Nếu không có: ghi warning + Step Summary, `ready=false`.
-3. `docker pull unityci/editor:ubuntu-6000.3.29f1-linux-il2cpp-4` (bước này chạy kể cả khi thiếu license).
-4. `game-ci/unity-test-runner@v4` — chỉ chạy khi `ready == 'true'`:
+3. **Cache Unity Library** — chỉ chạy khi `ready == 'true'`, dùng `actions/cache@v4`:
+   - `path: src/Recreate_The_World/Library`
+   - `key: Library-<os>-<hash ProjectVersion.txt>-<hash manifest.json + packages-lock.json>`
+   - `restore-keys: Library-<os>-<hash ProjectVersion.txt>-` để dùng lại cache gần nhất khi vừa đổi package.
+   - Cache hit: tải `Library/` có sẵn, bỏ qua import asset và tải package. Cache miss: Unity import lại, cuối job tự lưu cache mới nếu job thành công.
+4. `docker pull unityci/editor:ubuntu-6000.3.29f1-linux-il2cpp-4` (bước này chạy kể cả khi thiếu license).
+5. `game-ci/unity-test-runner@v4` — chỉ chạy khi `ready == 'true'`:
    - `unityVersion: 6000.3.29f1`
    - `projectPath: src/Recreate_The_World`
    - `testMode: editmode` (compile toàn project + chạy EditMode test)
    - `artifactsPath: artifacts/editmode`
    - `containerRegistryImageVersion: 4`
    - `checkName: Unity EditMode` (tạo GitHub check run)
-5. Upload artifact `unity-editmode-results` (thư mục `artifacts/`) khi `always()` và có license.
+6. Upload artifact `unity-editmode-results` (thư mục `artifacts/`) khi `always()` và có license.
 
 Fail khi: compile lỗi hoặc test fail. Với CLI mới, job còn fail nếu Unity thoát code 0 nhưng không ghi file kết quả test (test không thực sự chạy).
 
@@ -222,7 +227,7 @@ CI hiện **chưa** làm những việc sau:
 
 - Chưa chạy PlayMode test (chỉ EditMode).
 - Chưa build thử game bằng `unity-builder`.
-- Chưa cache `Library/` nên mỗi lần chạy phải import lại asset.
+- Đã cache `Library/` theo `ProjectVersion.txt` + `manifest.json` + `packages-lock.json`; lần đầu hoặc khi đổi package vẫn phải import lại một lần.
 - Chưa kiểm tra scene/prefab có `Missing` reference.
 - Chưa gate coverage (report chỉ nằm trong artifact).
 - Chưa có file test nào trong `Assets/Tests/EditMode` và `Assets/Tests/PlayMode`, nên phần "test" hiện chủ yếu là compile.
